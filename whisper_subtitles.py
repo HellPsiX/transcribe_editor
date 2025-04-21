@@ -57,24 +57,29 @@ SUPPORTED_MODELS = [
     {"name": "medium", "description": "Тяжелая модель, высокая точность, медленная на CPU"},
     {"name": "large", "description": "Очень тяжелая модель, высокая точность, для мощных ПК"},
     {"name": "large-v2", "description": "Улучшенная версия large, еще выше точность"},
-    {"name": "large-v3", "description": "Новейшая модель, максимальная точность, очень ресурсоемкая"}
+    {"name": "large-v3",
+        "description": "Новейшая модель, максимальная точность, очень ресурсоемкая"}
 ]
 
 # --- Настройка логирования ---
 logging.basicConfig(
     filename="transcription.log",
     level=logging.INFO,
-    format="%(asctime)s - %(levelname)s - %(message)s"
+    format="%(asctime)s - %(levelname)s - %(message)s",
+    encoding='utf-8'  # Добавляем явное указание кодировки UTF-8
 )
+
 
 def check_model_availability(model_name):
     """Проверяет, существует ли модель в локальном кэше, не загружая её"""
     cache_dir = Path.home() / ".cache" / "whisper"  # Стандартная папка кэша Whisper
-    model_files = [f"{model_name}.pt", f"{model_name}.en.pt"]  # Возможные файлы модели
+    # Возможные файлы модели
+    model_files = [f"{model_name}.pt", f"{model_name}.en.pt"]
     for file in model_files:
         if (cache_dir / file).exists():
             return True
     return False
+
 
 def select_model():
     """Показывает список моделей и позволяет выбрать одну"""
@@ -86,7 +91,7 @@ def select_model():
         print(f"{i}. {model['name']} - {status}")
         print(f"   Описание: {model['description']}")
         available_models.append(model["name"])
-    
+
     while True:
         try:
             choice = input("\nВыберите модель (введите номер 1-7): ")
@@ -98,17 +103,20 @@ def select_model():
         except ValueError:
             print("[!] Введите корректный номер.")
 
+
 def create_srt(words, output_filepath):
     """Создает файл субтитров в формате .srt с временными метками на уровне слов"""
     with open(output_filepath, "w", encoding="utf-8") as f:
         for i, word in enumerate(words, 1):
             start_time = word.get("start", 0)
-            end_time = word.get("end", start_time + 0.5)  # Добавляем 0.5 сек, если end отсутствует
+            # Добавляем 0.5 сек, если end отсутствует
+            end_time = word.get("end", start_time + 0.5)
             text = word["word"].strip()
             # Форматируем время в формате SRT (чч:мм:сс,миллисекунды)
-            start_srt = f"{int(start_time//3600):02d}:{int((start_time%3600)//60):02d}:{int(start_time%60):02d},{int((start_time%1)*1000):03d}"
-            end_srt = f"{int(end_time//3600):02d}:{int((end_time%3600)//60):02d}:{int(end_time%60):02d},{int((end_time%1)*1000):03d}"
+            start_srt = f"{int(start_time//3600):02d}:{int((start_time % 3600)//60):02d}:{int(start_time % 60):02d},{int((start_time % 1)*1000):03d}"
+            end_srt = f"{int(end_time//3600):02d}:{int((end_time % 3600)//60):02d}:{int(end_time % 60):02d},{int((end_time % 1)*1000):03d}"
             f.write(f"{i}\n{start_srt} --> {end_srt}\n{text}\n\n")
+
 
 def transcribe_files_in_folder(model_name):
     # Определяем директорию скрипта
@@ -122,7 +130,8 @@ def transcribe_files_in_folder(model_name):
     output_dir = script_dir / OUTPUT_DIR_NAME
     print(f"[*] Директория скрипта: {script_dir}")
     print(f"[*] Папка для результатов: {output_dir}")
-    logging.info(f"Script directory: {script_dir}, Output directory: {output_dir}")
+    logging.info(
+        f"Script directory: {script_dir}, Output directory: {output_dir}")
 
     # Создаем папку для результатов
     try:
@@ -139,7 +148,8 @@ def transcribe_files_in_folder(model_name):
     if device == "cpu":
         print("[!] Внимание: Транскрипция на CPU будет медленнее.")
         if model_name in ["medium", "large", "large-v2", "large-v3"]:
-            print(f"[!] Модель '{model_name}' может быть очень медленной на CPU.")
+            print(
+                f"[!] Модель '{model_name}' может быть очень медленной на CPU.")
     logging.info(f"Using device: {device}")
 
     # Загружаем модель Whisper
@@ -150,7 +160,8 @@ def transcribe_files_in_folder(model_name):
         logging.info(f"Model {model_name} loaded successfully")
     except Exception as e:
         print(f"[!] Ошибка загрузки модели: {e}")
-        print(f"Убедитесь, что модель '{model_name}' поддерживается и есть доступ к интернету для загрузки.")
+        print(
+            f"Убедитесь, что модель '{model_name}' поддерживается и есть доступ к интернету для загрузки.")
         logging.error(f"Failed to load model: {e}")
         return
 
@@ -161,8 +172,10 @@ def transcribe_files_in_folder(model_name):
         if item.is_file() and item.suffix.lower() in SUPPORTED_EXTENSIONS:
             file_size_mb = item.stat().st_size / (1024 * 1024)
             if file_size_mb > MAX_FILE_SIZE_MB:
-                print(f"  [!] Файл {item.name} слишком большой ({file_size_mb:.2f} МБ). Пропуск.")
-                logging.warning(f"Skipped {item.name}: File too large ({file_size_mb:.2f} MB)")
+                print(
+                    f"  [!] Файл {item.name} слишком большой ({file_size_mb:.2f} МБ). Пропуск.")
+                logging.warning(
+                    f"Skipped {item.name}: File too large ({file_size_mb:.2f} MB)")
                 continue
             files_to_process.append(item)
             print(f"  [+] Найден: {item.name}")
@@ -172,7 +185,8 @@ def transcribe_files_in_folder(model_name):
         logging.info("No supported files found")
         return
 
-    print(f"\n[*] Начинается транскрипция {len(files_to_process)} файла(ов)...")
+    print(
+        f"\n[*] Начинается транскрипция {len(files_to_process)} файла(ов)...")
     success_count = 0
     fail_count = 0
 
@@ -187,13 +201,15 @@ def transcribe_files_in_folder(model_name):
 
         try:
             # Транскрипция с временными метками слов
-            result = model.transcribe(str(input_filepath), verbose=False, word_timestamps=True, language="ru")
+            result = model.transcribe(
+                str(input_filepath), verbose=False, word_timestamps=True, language="ru")
             transcribed_text = result["text"]
 
             # Сохраняем текст
             with open(output_filepath, "w", encoding="utf-8") as f:
                 f.write(transcribed_text)
-            print(f"  [*] Транскрипция сохранена в: {output_dir.name}/{output_filename}")
+            print(
+                f"  [*] Транскрипция сохранена в: {output_dir.name}/{output_filename}")
 
             # Собираем слова с временными метками
             words = []
@@ -201,38 +217,47 @@ def transcribe_files_in_folder(model_name):
                 words.extend(segment.get("words", []))
             if words:
                 create_srt(words, srt_filepath)
-                print(f"  [*] Субтитры сохранены в: {output_dir.name}/{srt_filename}")
+                print(
+                    f"  [*] Субтитры сохранены в: {output_dir.name}/{srt_filename}")
             else:
-                print(f"  [!] Не удалось получить временные метки слов для {input_filepath.name}")
+                print(
+                    f"  [!] Не удалось получить временные метки слов для {input_filepath.name}")
 
-            logging.info(f"Transcription and SRT saved for {input_filepath.name}")
+            logging.info(
+                f"Transcription and SRT saved for {input_filepath.name}")
             success_count += 1
 
         except Exception as e:
             print(f"  [!] Ошибка транскрипции {input_filepath.name}: {e}")
-            logging.error(f"Transcription failed for {input_filepath.name}: {e}")
+            logging.error(
+                f"Transcription failed for {input_filepath.name}: {e}")
             try:
                 with open(output_filepath, "w", encoding="utf-8") as f:
                     f.write(f"Ошибка транскрипции: {e}")
-                print(f"  [*] Сообщение об ошибке записано в: {output_dir.name}/{output_filename}")
+                print(
+                    f"  [*] Сообщение об ошибке записано в: {output_dir.name}/{output_filename}")
             except Exception as write_err:
                 print(f"  [!] Не удалось записать ошибку: {write_err}")
-                logging.error(f"Failed to write error message for {input_filepath.name}: {write_err}")
+                logging.error(
+                    f"Failed to write error message for {input_filepath.name}: {write_err}")
             fail_count += 1
 
     print("\n-------------------------------------")
-    print(f"Завершена обработка. Успешно: {success_count}, С ошибками: {fail_count}")
+    print(
+        f"Завершена обработка. Успешно: {success_count}, С ошибками: {fail_count}")
     print(f"Результаты сохранены в папке: {output_dir.name}")
-    logging.info(f"Completed. Successful: {success_count}, Failed: {fail_count}")
+    logging.info(
+        f"Completed. Successful: {success_count}, Failed: {fail_count}")
+
 
 if __name__ == "__main__":
     print("--- Whisper Subtitles Generator ---")
     print("Запуск генерации субтитров для аудио/видео файлов...")
     print("Для слабых компьютеров используйте 'tiny' или 'base'.")
-    
+
     # Выбор модели пользователем
     selected_model = select_model()
     transcribe_files_in_folder(selected_model)
-    
+
     if sys.platform == "win32":
         input("\nНажмите Enter для выхода...")

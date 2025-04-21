@@ -43,7 +43,8 @@ SUPPORTED_MODELS = [
 logging.basicConfig(
     filename="transcribe_gui.log",
     level=logging.INFO,
-    format="%(asctime)s - %(levelname)s - %(message)s"
+    format="%(asctime)s - %(levelname)s - %(message)s",
+    encoding='utf-8'  # Добавляем явное указание кодировки UTF-8
 )
 
 

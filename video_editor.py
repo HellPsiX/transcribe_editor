@@ -31,8 +31,10 @@ SUPPORTED_EXTENSIONS = {".mp4", ".mkv", ".avi", ".mov"}
 logging.basicConfig(
     filename="video_edit.log",
     level=logging.INFO,
-    format="%(asctime)s - %(levelname)s - %(message)s"
+    format="%(asctime)s - %(levelname)s - %(message)s",
+    encoding='utf-8'  # Добавляем явное указание кодировки UTF-8
 )
+
 
 def parse_srt(srt_filepath):
     """Парсит .srt файл и возвращает список слов с временными метками и текст без меток"""
@@ -56,16 +58,19 @@ def parse_srt(srt_filepath):
                         break
                     word = lines[i].strip()
                     if word:  # Пропускаем пустые строки
-                        words.append({"start": start_time, "end": end_time, "word": word})
+                        words.append(
+                            {"start": start_time, "end": end_time, "word": word})
                         text.append(word)
                     i += 1
                 except Exception as e:
-                    logging.error(f"Ошибка парсинга строки времени в {srt_filepath}: {time_line}, ошибка: {e}")
+                    logging.error(
+                        f"Ошибка парсинга строки времени в {srt_filepath}: {time_line}, ошибка: {e}")
                     i += 1
                     continue
             else:
                 i += 1
     return words, " ".join(text)
+
 
 def parse_time(time_str):
     """Преобразует время в формате чч:мм:сс,миллисекунды или чч:мм:сс:миллисекунды в секунды"""
@@ -78,8 +83,10 @@ def parse_time(time_str):
     if not match:
         raise ValueError(f"Некорректный формат времени: {time_str}")
     hours, minutes, seconds, milliseconds = match.groups()
-    seconds = float(seconds) + (float(f"0.{milliseconds}") if milliseconds else 0)
+    seconds = float(seconds) + \
+        (float(f"0.{milliseconds}") if milliseconds else 0)
     return int(hours) * 3600 + int(minutes) * 60 + seconds
+
 
 def create_srt(words, output_filepath):
     """Создает .srt файл из списка слов с временными метками"""
@@ -88,9 +95,10 @@ def create_srt(words, output_filepath):
             start_time = word["start"]
             end_time = word["end"]
             text = word["word"].strip()
-            start_srt = f"{int(start_time//3600):02d}:{int((start_time%3600)//60):02d}:{int(start_time%60):02d},{int((start_time%1)*1000):03d}"
-            end_srt = f"{int(end_time//3600):02d}:{int((end_time%3600)//60):02d}:{int(end_time%60):02d},{int((end_time%1)*1000):03d}"
+            start_srt = f"{int(start_time//3600):02d}:{int((start_time % 3600)//60):02d}:{int(start_time % 60):02d},{int((start_time % 1)*1000):03d}"
+            end_srt = f"{int(end_time//3600):02d}:{int((end_time % 3600)//60):02d}:{int(end_time % 60):02d},{int((end_time % 1)*1000):03d}"
             f.write(f"{i}\n{start_srt} --> {end_srt}\n{text}\n\n")
+
 
 def edit_text_gui(original_text, callback):
     """Открывает текстовый редактор для редактирования текста"""
@@ -98,7 +106,8 @@ def edit_text_gui(original_text, callback):
     root.title("Редактор текста субтитров")
     root.geometry("600x400")
 
-    text_area = scrolledtext.ScrolledText(root, wrap=tk.WORD, width=60, height=20)
+    text_area = scrolledtext.ScrolledText(
+        root, wrap=tk.WORD, width=60, height=20)
     text_area.pack(padx=10, pady=10)
     text_area.insert(tk.END, original_text)
 
@@ -112,6 +121,7 @@ def edit_text_gui(original_text, callback):
 
     root.mainloop()
 
+
 def compare_texts(original_text, edited_text):
     """Сравнивает исходный и отредактированный текст, возвращает список оставшихся слов"""
     original_words = original_text.split()
@@ -123,6 +133,7 @@ def compare_texts(original_text, edited_text):
             kept_indices.append(i)
             j += 1
     return kept_indices
+
 
 def edit_video(video_filepath, srt_filepath):
     # Определяем директорию скрипта
@@ -139,13 +150,15 @@ def edit_video(video_filepath, srt_filepath):
     # Читаем .srt файл
     words, original_text = parse_srt(srt_filepath)
     if not words:
-        print(f"[!] Не удалось извлечь слова из {srt_filepath.name}. Проверьте формат .srt файла.")
+        print(
+            f"[!] Не удалось извлечь слова из {srt_filepath.name}. Проверьте формат .srt файла.")
         logging.error(f"No words extracted from {srt_filepath.name}")
         return
     print(f"[*] Загружено {len(words)} слов из {srt_filepath.name}")
 
     # Открываем текстовый редактор
     edited_text = [None]
+
     def set_edited_text(text):
         edited_text[0] = text
 
@@ -186,12 +199,15 @@ def edit_video(video_filepath, srt_filepath):
             })
             current_time += end - start
         except Exception as e:
-            print(f"[!] Ошибка обработки фрагмента {word['word']} ({start}-{end}): {e}")
-            logging.error(f"Failed to process clip for {word['word']} ({start}-{end}): {e}")
+            print(
+                f"[!] Ошибка обработки фрагмента {word['word']} ({start}-{end}): {e}")
+            logging.error(
+                f"Failed to process clip for {word['word']} ({start}-{end}): {e}")
             continue
 
     if not clips:
-        print(f"[!] Не удалось создать фрагменты для видео {video_filepath.name}")
+        print(
+            f"[!] Не удалось создать фрагменты для видео {video_filepath.name}")
         logging.error(f"No clips created for {video_filepath.name}")
         video.close()
         return
@@ -200,8 +216,10 @@ def edit_video(video_filepath, srt_filepath):
     try:
         final_clip = concatenate_videoclips(clips, method="compose")
         output_video = output_dir / f"edited_{video_filepath.name}"
-        final_clip.write_videofile(str(output_video), codec="libx264", audio_codec="aac")
-        print(f"[*] Отредактированное видео сохранено в: {output_dir.name}/edited_{video_filepath.name}")
+        final_clip.write_videofile(
+            str(output_video), codec="libx264", audio_codec="aac")
+        print(
+            f"[*] Отредактированное видео сохранено в: {output_dir.name}/edited_{video_filepath.name}")
     except Exception as e:
         print(f"[!] Ошибка сохранения видео: {e}")
         logging.error(f"Failed to save edited video: {e}")
@@ -216,8 +234,10 @@ def edit_video(video_filepath, srt_filepath):
     # Создаем новый .srt файл
     output_srt = output_dir / f"edited_{srt_filepath.name}"
     create_srt(adjusted_words, output_srt)
-    print(f"[*] Обновленный .srt сохранен в: {output_dir.name}/edited_{srt_filepath.name}")
+    print(
+        f"[*] Обновленный .srt сохранен в: {output_dir.name}/edited_{srt_filepath.name}")
     logging.info(f"Edited video and SRT saved for {video_filepath.name}")
+
 
 if __name__ == "__main__":
     print("--- Video Editor Based on SRT ---")
@@ -226,7 +246,8 @@ if __name__ == "__main__":
     # Определяем директорию
     script_dir = Path.cwd()
     srt_dir = script_dir / SRT_DIR_NAME
-    video_files = [f for f in script_dir.iterdir() if f.is_file() and f.suffix.lower() in SUPPORTED_EXTENSIONS]
+    video_files = [f for f in script_dir.iterdir() if f.is_file(
+    ) and f.suffix.lower() in SUPPORTED_EXTENSIONS]
 
     if not video_files:
         print("[!] Видеофайлы не найдены в текущей папке.")
@@ -238,14 +259,16 @@ if __name__ == "__main__":
     for video_file in video_files:
         srt_file = srt_dir / f"{video_file.stem}.srt"
         if srt_file.exists():
-            print(f"\n[*] Обработка видео: {video_file.name} с субтитрами: {srt_file.name}")
+            print(
+                f"\n[*] Обработка видео: {video_file.name} с субтитрами: {srt_file.name}")
             edit_video(video_file, srt_file)
             processed = True
         else:
-            print(f"[!] Файл .srt для {video_file.name} не найден в папке {SRT_DIR_NAME}.")
+            print(
+                f"[!] Файл .srt для {video_file.name} не найден в папке {SRT_DIR_NAME}.")
 
     if not processed:
         print("[!] Не найдено пар видео и .srt файлов для обработки.")
-    
+
     if sys.platform == "win32":
         input("\nНажмите Enter для выхода...")
