@@ -1,4 +1,4 @@
-Whisper Video Transcriber - Инструкция
+Whisper Video Transcriber
 
 Добро пожаловать в Whisper Video Transcriber! Этот набор скриптов позволяет транскрибировать аудио/видео файлы и редактировать видео на основе текста с помощью моделей Whisper. Включает три скрипта: transcribe.py, transcribe_gui.py и transcribe_folder.py.
 
